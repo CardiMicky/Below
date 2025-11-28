@@ -84,43 +84,70 @@ async function startCamera(deviceId = null) {
             await enumerateCameras();
         }
         
-        let constraints;
-        
-        // Start with flexible constraints that work on all devices
-        const baseConstraints = {
-            video: {
-                width: { ideal: 1280, max: 1920 },
-                height: { ideal: 720, max: 1080 }
-            },
-            audio: false
-        };
-        
+        // Build device constraint
+        let deviceConstraint = {};
         if (deviceId) {
-            // Use specific device ID
-            baseConstraints.video.deviceId = { exact: deviceId };
+            deviceConstraint.deviceId = { exact: deviceId };
         } else if (availableCameras.length > 0) {
-            // Use device from our enumerated list
-            const camera = availableCameras[currentCameraIndex];
-            baseConstraints.video.deviceId = { exact: camera.deviceId };
+            deviceConstraint.deviceId = { exact: availableCameras[currentCameraIndex].deviceId };
         } else {
-            // Fallback to facingMode
-            baseConstraints.video.facingMode = currentFacingMode;
+            deviceConstraint.facingMode = currentFacingMode;
         }
 
-        // Try with ideal constraints first
-        try {
-            stream = await navigator.mediaDevices.getUserMedia(baseConstraints);
-        } catch (error) {
-            // If that fails, try with minimal constraints
-            console.warn('Failed with ideal constraints, trying minimal:', error);
-            const minimalConstraints = {
-                video: deviceId ? { deviceId: { exact: deviceId } } : 
-                       availableCameras.length > 0 ? 
-                       { deviceId: { exact: availableCameras[currentCameraIndex].deviceId } } :
-                       { facingMode: currentFacingMode },
+        // Try multiple constraint levels, from ideal to absolute minimum
+        const constraintAttempts = [
+            // Attempt 1: Ideal resolution
+            {
+                video: {
+                    ...deviceConstraint,
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
                 audio: false
-            };
-            stream = await navigator.mediaDevices.getUserMedia(minimalConstraints);
+            },
+            // Attempt 2: Lower resolution
+            {
+                video: {
+                    ...deviceConstraint,
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                },
+                audio: false
+            },
+            // Attempt 3: Just device, no resolution
+            {
+                video: deviceConstraint,
+                audio: false
+            },
+            // Attempt 4: Absolute minimum - just facingMode or any camera
+            {
+                video: availableCameras.length > 0 ? {} : { facingMode: currentFacingMode },
+                audio: false
+            }
+        ];
+
+        let lastError = null;
+        for (let i = 0; i < constraintAttempts.length; i++) {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia(constraintAttempts[i]);
+                console.log(`Camera started with constraint level ${i + 1}`);
+                break; // Success, exit loop
+            } catch (error) {
+                lastError = error;
+                // If it's a constraint error, try next level
+                if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+                    console.warn(`Constraint level ${i + 1} failed, trying next...`, error);
+                    continue; // Try next constraint level
+                } else {
+                    // For other errors (permission, not found, etc), stop trying
+                    throw error;
+                }
+            }
+        }
+
+        // If we exhausted all attempts and still no stream
+        if (!stream) {
+            throw lastError || new Error('Failed to access camera after all attempts');
         }
         
         videoElement.srcObject = stream;
@@ -150,7 +177,22 @@ async function startCamera(deviceId = null) {
         });
     } catch (error) {
         console.error('Error accessing camera:', error);
-        handleCameraError(error);
+        // Only show error for non-constraint issues
+        if (error.name !== 'OverconstrainedError' && error.name !== 'ConstraintNotSatisfiedError') {
+            handleCameraError(error);
+        } else {
+            // For constraint errors, try one more time with absolute minimum
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                videoElement.srcObject = stream;
+                hideStatus();
+                document.body.classList.add('camera-active');
+                updateVideoMirroring();
+                console.log('Camera started with absolute minimum constraints');
+            } catch (finalError) {
+                handleCameraError(finalError);
+            }
+        }
     }
 }
 
@@ -368,9 +410,6 @@ function handleCameraError(error) {
         errorMessage = 'No camera found on this device.';
     } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
         errorMessage = 'Camera is already in use.\nPlease close other apps using the camera.';
-        showRetry = true;
-    } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
-        errorMessage = 'Camera constraints not supported.\nTrying with basic settings...';
         showRetry = true;
     } else if (error.name === 'NotSupportedError') {
         errorMessage = 'Camera not supported.\nPlease use a modern browser.';
