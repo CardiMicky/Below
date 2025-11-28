@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>Camera</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/Icons/icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="camera-app">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"></path>
+                </svg>
+            </button>
+            <button class="icon-btn" id="flashBtn" aria-label="Flash">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M6 2l3 9h6l-3 9"></path>
+                    <line x1="6" y1="2" x2="18" y2="22"></line>
+                </svg>
+            </button>
+            <button class="icon-btn" id="timerBtn" aria-label="Timer">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </button>
+            <div class="time-display" id="timeDisplay">9:16</div>
+            <div class="resolution-display">12M</div>
+            <button class="icon-btn" id="moreBtn" aria-label="More">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <rect x="3" y="3" width="6" height="6"></rect>
+                    <rect x="11" y="3" width="6" height="6"></rect>
+                    <rect x="19" y="3" width="6" height="6"></rect>
+                    <rect x="3" y="11" width="6" height="6"></rect>
+                    <rect x="11" y="11" width="6" height="6"></rect>
+                    <rect x="19" y="11" width="6" height="6"></rect>
+                    <rect x="3" y="19" width="6" height="6"></rect>
+                    <rect x="11" y="19" width="6" height="6"></rect>
+                    <rect x="19" y="19" width="6" height="6"></rect>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Viewfinder -->
+        <div class="viewfinder">
+            <video id="videoElement" autoplay playsinline></video>
+            <div id="status" class="status-overlay">
+                <div class="status-content">
+                    <p>Loading camera...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="zoom-controls">
+            <button class="zoom-btn" data-zoom="0.5">.5</button>
+            <button class="zoom-btn active" data-zoom="1">1x</button>
+            <button class="zoom-btn" data-zoom="2">2</button>
+        </div>
+
+        <!-- Camera Modes -->
+        <div class="camera-modes">
+            <button class="mode-btn">MUSANT</button>
+            <button class="mode-btn">PORTRAIT</button>
+            <button class="mode-btn active">PHOTO</button>
+            <button class="mode-btn">VIDÉO</button>
+            <button class="mode-btn">PLUS</button>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="bottom-controls">
+            <button class="gallery-thumbnail" id="galleryBtn" aria-label="Gallery">
+                <div class="thumbnail-placeholder"></div>
+            </button>
+            <button class="shutter-btn" id="shutterBtn" aria-label="Capture"></button>
+            <button class="icon-btn switch-camera" id="switchCameraBtn" aria-label="Switch Camera">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                    <path d="M12 9v8m-4-4h8"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Android Navigation Bar -->
+        <div class="nav-bar">
+            <div class="nav-btn"></div>
+            <div class="nav-btn home"></div>
+            <div class="nav-btn back"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('ServiceWorker registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
